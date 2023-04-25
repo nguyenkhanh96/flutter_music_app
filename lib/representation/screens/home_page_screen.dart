@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_music_app/representation/models/song_model.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:get/get.dart';
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
@@ -75,8 +76,92 @@ class _HomePageScreenState extends State<HomePageScreen> {
                   ),
                 ),
               ),
+              PlaylistCard(songs: songs)
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class PlaylistCard extends StatelessWidget {
+  const PlaylistCard({
+    super.key,
+    required this.songs,
+  });
+
+  final List<Song> songs;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        Get.toNamed("/player", arguments: Song);
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(left: 29, right: 29, top: 16),
+        child: Column(
+          children: [
+            ListView.builder(
+              shrinkWrap: true,
+              itemCount: songs.length,
+              itemBuilder: (context, index) {
+                return Container(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: Image.asset(
+                          songs[index].coverUrl,
+                          height: 32,
+                          width: 32,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            songs[index].title,
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            songs[index].description,
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w400),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        songs[index].time,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {},
+                        icon: const FaIcon(FontAwesomeIcons.ellipsis),
+                      ),
+                      IconButton(
+                        onPressed: () {},
+                        icon: const FaIcon(FontAwesomeIcons.bars),
+                      )
+                    ],
+                  ),
+                );
+              },
+            )
+          ],
         ),
       ),
     );
@@ -145,5 +230,3 @@ class _headerMusic extends StatelessWidget {
     );
   }
 }
-
-//11p37s Sizebox + ListView.builder
