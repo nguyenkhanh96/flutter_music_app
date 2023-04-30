@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_music_app/representation/models/song_model.dart';
 import 'package:flutter_music_app/representation/widgets/seekbar.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart' as rxdart;
 
@@ -14,7 +15,9 @@ class MusicPlayerScreen extends StatefulWidget {
 
 class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
   AudioPlayer audioPlayer = AudioPlayer();
-  Song song = Song.songs[0];
+  // int index = Get.arguments[2]['index'] ?? 0;
+  List<Song> songList = Get.arguments[0]['songs'] ?? Song.songs;
+  Song song = Get.arguments[1]["song"];
 
   @override
   void initState() {
@@ -58,7 +61,9 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
         leading: Container(
           margin: const EdgeInsets.only(left: 29),
           child: IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Get.toNamed("/");
+            },
             icon: const FaIcon(
               FontAwesomeIcons.bars,
               color: Colors.black,
@@ -136,26 +141,185 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
             const SizedBox(
               height: 20,
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(left: 29, right: 29),
-                  child: Text(
-                    "Recommended",
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 10),
-                  ),
-                ),
-                PlaylistCard(
-                  songs: Song.songs,
-                )
-              ],
+            _MusicPlayer(
+              song: song,
+              seekBarDataStream: _seekBarDataStream,
+              audioPlayer: audioPlayer,
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            Container(
+              margin: const EdgeInsets.only(left: 29),
+              alignment: Alignment.centerLeft,
+              child: const Text(
+                "Recommended",
+                style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14),
+              ),
+            ),
+            PlaylistCard(
+              songs: songList,
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MusicPlayer extends StatelessWidget {
+  const _MusicPlayer({
+    super.key,
+    required Stream<SeekBarData> seekBarDataStream,
+    required this.audioPlayer,
+    required this.song,
+  }) : _seekBarDataStream = seekBarDataStream;
+
+  final Stream<SeekBarData> _seekBarDataStream;
+  final AudioPlayer audioPlayer;
+  final Song song;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 29),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          StreamBuilder<SeekBarData>(
+            stream: _seekBarDataStream,
+            builder: (context, snapshot) {
+              final positionData = snapshot.data;
+              return SeekBar(
+                //positionData?.position
+                position: positionData?.position ?? Duration.zero,
+                duration: positionData?.duration ?? Duration.zero,
+                onChangeEnd: audioPlayer.seek,
+              );
+            },
+          ),
+          const SizedBox(
+            height: 20,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: Image.asset(
+                  song.coverUrl,
+                  height: 32,
+                  width: 32,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    song.title,
+                    style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    song.description,
+                    style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w400),
+                  ),
+                ],
+              ),
+              StreamBuilder<SequenceState?>(
+                stream: audioPlayer.sequenceStateStream,
+                builder: (context, index) {
+                  return IconButton(
+                    onPressed: audioPlayer.hasPrevious
+                        ? audioPlayer.seekToPrevious
+                        : null,
+                    iconSize: 40,
+                    icon: const Icon(
+                      Icons.chevron_left,
+                      color: Colors.purple,
+                    ),
+                  );
+                },
+              ),
+              StreamBuilder<PlayerState>(
+                stream: audioPlayer.playerStateStream,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    final playerState = snapshot.data;
+                    final processingState = playerState!.processingState;
+
+                    if (ProcessingState == ProcessingState.loading ||
+                        ProcessingState == ProcessingState.buffering) {
+                      return Container(
+                        width: 64,
+                        height: 64,
+                        margin: const EdgeInsets.all(10),
+                        child: const CircularProgressIndicator(),
+                      );
+                    } else if (!audioPlayer.playing) {
+                      return IconButton(
+                        onPressed: audioPlayer.play,
+                        iconSize: 40,
+                        icon: const Icon(
+                          Icons.play_circle,
+                          color: Colors.purple,
+                        ),
+                      );
+                    } else if (processingState != ProcessingState.completed) {
+                      return IconButton(
+                        onPressed: audioPlayer.pause,
+                        icon: const Icon(
+                          Icons.pause_circle,
+                          color: Colors.purple,
+                        ),
+                        iconSize: 40,
+                      );
+                    } else {
+                      return IconButton(
+                        icon: const Icon(
+                          Icons.replay_circle_filled_outlined,
+                          color: Colors.purple,
+                        ),
+                        iconSize: 40,
+                        onPressed: () => audioPlayer.seek(
+                          Duration.zero,
+                          index: audioPlayer.effectiveIndices!.first,
+                        ),
+                      );
+                    }
+                  } else {
+                    return const CircularProgressIndicator();
+                  }
+                },
+              ),
+              StreamBuilder<SequenceState?>(
+                stream: audioPlayer.sequenceStateStream,
+                builder: (context, index) {
+                  return IconButton(
+                    onPressed:
+                        audioPlayer.hasNext ? audioPlayer.seekToNext : null,
+                    iconSize: 40,
+                    icon: const Icon(
+                      Icons.chevron_right,
+                      color: Colors.purple,
+                    ),
+                  );
+                },
+              ),
+            ],
+          )
+        ],
       ),
     );
   }
@@ -172,71 +336,65 @@ class PlaylistCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 29, right: 29, top: 16),
-      child: Column(
-        children: [
-          ListView.builder(
-            shrinkWrap: true,
-            itemCount: songs.length,
-            itemBuilder: (context, index) {
-              return Container(
-                child: Row(
+      padding: const EdgeInsets.only(left: 29, right: 29),
+      child: ListView.builder(
+        shrinkWrap: true,
+        itemCount: songs.length,
+        itemBuilder: (context, index) {
+          return Container(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(5),
+                  child: Image.asset(
+                    songs[index].coverUrl,
+                    height: 32,
+                    width: 32,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(5),
-                      child: Image.asset(
-                        songs[index].coverUrl,
-                        height: 32,
-                        width: 32,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          songs[index].title,
-                          style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          songs[index].description,
-                          style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w400),
-                        ),
-                      ],
+                    Text(
+                      songs[index].title,
+                      style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600),
                     ),
                     Text(
-                      songs[index].time,
+                      songs[index].description,
                       style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                      ),
+                          color: Colors.black,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w400),
                     ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const FaIcon(FontAwesomeIcons.ellipsis),
-                    ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const FaIcon(FontAwesomeIcons.bars),
-                    )
                   ],
                 ),
-              );
-            },
-          )
-        ],
+                Text(
+                  songs[index].time,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {},
+                  icon: const FaIcon(FontAwesomeIcons.ellipsis),
+                ),
+                IconButton(
+                  onPressed: () {},
+                  icon: const FaIcon(FontAwesomeIcons.bars),
+                )
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
-
-// 27s03

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 class SeekBarData {
@@ -25,8 +27,80 @@ class SeekBar extends StatefulWidget {
 }
 
 class _SeekBarState extends State<SeekBar> {
+  double? _dragValue;
+
+  String _formatDuration(Duration? duration) {
+    if (duration == null) {
+      return '--:--';
+    } else {
+      String minutes = duration.inMinutes.toString().padLeft(2, '0');
+      String seconds =
+          duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+      return '$minutes:$seconds';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return Row(
+      children: [
+        Text(
+          _formatDuration(widget.position),
+          style: const TextStyle(color: Colors.black),
+        ),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 4,
+              thumbShape: const RoundSliderThumbShape(
+                disabledThumbRadius: 4,
+                enabledThumbRadius: 4,
+              ),
+              overlayShape: const RoundSliderOverlayShape(
+                overlayRadius: 10,
+              ),
+              activeTrackColor: Colors.purple,
+              inactiveTrackColor: Colors.purple.withOpacity(0.2),
+              thumbColor: Colors.purple,
+              overlayColor: Colors.purple,
+            ),
+            child: Slider(
+              min: 0,
+              max: widget.duration.inMilliseconds.toDouble(),
+              value: min(
+                _dragValue ?? widget.position.inMilliseconds.toDouble(),
+                widget.duration.inMilliseconds.toDouble(),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _dragValue = value;
+                });
+                if (widget.onChanged != null) {
+                  widget.onChanged!(
+                    Duration(
+                      milliseconds: value.round(),
+                    ),
+                  );
+                }
+              },
+              onChangeEnd: (value) {
+                if (widget.onChangeEnd != null) {
+                  widget.onChangeEnd!(
+                    Duration(
+                      milliseconds: value.round(),
+                    ),
+                  );
+                }
+                _dragValue = null;
+              },
+            ),
+          ),
+        ),
+        Text(
+          _formatDuration(widget.duration),
+          style: const TextStyle(color: Colors.black),
+        ),
+      ],
+    );
   }
 }

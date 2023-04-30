@@ -95,19 +95,22 @@ class PlaylistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        Get.toNamed("/player", arguments: Song);
-      },
-      child: Padding(
-        padding: const EdgeInsets.only(left: 29, right: 29, top: 16),
-        child: Column(
-          children: [
-            ListView.builder(
-              shrinkWrap: true,
-              itemCount: songs.length,
-              itemBuilder: (context, index) {
-                return Container(
+    return Padding(
+      padding: const EdgeInsets.only(left: 29, right: 29, top: 16),
+      child: Column(
+        children: [
+          ListView.builder(
+            shrinkWrap: true,
+            itemCount: songs.length,
+            itemBuilder: (context, index) {
+              return Container(
+                child: InkWell(
+                  onTap: () {
+                    Get.toNamed("/player", arguments: [
+                      {"songs": songs},
+                      {"song": songs[index]}
+                    ]);
+                  },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -158,11 +161,11 @@ class PlaylistCard extends StatelessWidget {
                       )
                     ],
                   ),
-                );
-              },
-            )
-          ],
-        ),
+                ),
+              );
+            },
+          )
+        ],
       ),
     );
   }
